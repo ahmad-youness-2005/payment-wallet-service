@@ -25,11 +25,9 @@ CREATE TABLE transfers (
     receiver_wallet_id CHAR(36) NOT NULL,
     amount DECIMAL(19, 2) NOT NULL,
     status VARCHAR(30) NOT NULL,
-    idempotency_key VARCHAR(90) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_transfer_sender FOREIGN KEY (sender_wallet_id) REFERENCES wallets(id),
-    CONSTRAINT fk_transfer_receiver FOREIGN KEY (receiver_wallet_id) REFERENCES wallets(id),
-    CONSTRAINT uk_sender_idempotency UNIQUE (sender_wallet_id, idempotency_key)
+    CONSTRAINT fk_transfer_receiver FOREIGN KEY (receiver_wallet_id) REFERENCES wallets(id)
 );
 
 CREATE TABLE ledger_entries (

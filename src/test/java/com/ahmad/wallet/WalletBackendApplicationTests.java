@@ -40,46 +40,12 @@ class WalletBackendApplicationTests {
         var eve = signUp("eve");
 
         topUp(alice.token, "500.00");
-        var transferId = send(alice.token, bob.userId, "120.00", "k-" + UUID.randomUUID())
+        var transferId = send(alice.token, bob.userId, "120.00")
                 .get("transferId").asText();
 
         mvc.perform(get("/api/v1/transfers/{id}", transferId)
                         .header("Authorization", bearer(eve.token)))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void sameKeySameSenderReturnsTheSameTransfer() throws Exception {
-        var alice = signUp("alice2");
-        var bob = signUp("bob2");
-
-        topUp(alice.token, "500.00");
-        var key = "k-" + UUID.randomUUID();
-
-        JsonNode first = send(alice.token, bob.userId, "100.00", key);
-        JsonNode second = send(alice.token, bob.userId, "100.00", key);
-
-        assertThat(second.get("transferId").asText())
-                .isEqualTo(first.get("transferId").asText());
-    }
-
-    @Test
-    void reusingTheKeyForADifferentPayloadIs409() throws Exception {
-        var alice = signUp("alice3");
-        var bob = signUp("bob3");
-
-        topUp(alice.token, "500.00");
-        var key = "k-" + UUID.randomUUID();
-        send(alice.token, bob.userId, "100.00", key);
-
-        String body = "{\"receiverUserId\":\"" + bob.userId + "\",\"amount\":120.00}";
-
-        mvc.perform(post("/api/v1/transfers")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearer(alice.token))
-                        .header("Idempotency-Key", key)
-                        .content(body))
-                .andExpect(status().isConflict());
     }
 
     @Test
@@ -118,7 +84,6 @@ class WalletBackendApplicationTests {
         mvc.perform(post("/api/v1/transfers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearer(sender.token))
-                        .header("Idempotency-Key", "k-" + UUID.randomUUID())
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
@@ -154,12 +119,11 @@ class WalletBackendApplicationTests {
                 .andExpect(status().isOk());
     }
 
-    private JsonNode send(String token, UUID receiverId, String amount, String key) throws Exception {
+    private JsonNode send(String token, UUID receiverId, String amount) throws Exception {
         String body = "{\"receiverUserId\":\"" + receiverId + "\",\"amount\":" + amount + "}";
         String resp = mvc.perform(post("/api/v1/transfers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearer(token))
-                        .header("Idempotency-Key", key)
                         .content(body))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

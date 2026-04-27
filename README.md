@@ -68,7 +68,7 @@ api
     POST /api/v1/wallet/me/open-new
     POST /api/v1/wallet/me/topup      (local profile only)
 
-    POST /api/v1/transfers            needs `Idempotency-Key` header
+    POST /api/v1/transfers
     GET  /api/v1/transfers/{id}       only sender or receiver can read it
 
 `size` on the history endpoint is capped at 100. `from`/`to` are
@@ -91,11 +91,6 @@ stuff worth knowing
 Transfers grab a pessimistic write lock on both wallets, ordered by
 wallet id, so two concurrent transfers between the same pair of wallets
 can't deadlock each other.
-
-Idempotency keys are scoped *per sender wallet*. Same key + same payload
-replays the original response. Same key + different payload returns 409.
-Don't reuse keys across senders — there's no global uniqueness check
-because that would force a hot lock on the table.
 
 Every successful transfer writes a debit/credit pair into
 `ledger_entries` and one `wallet_transactions` row per side, which is

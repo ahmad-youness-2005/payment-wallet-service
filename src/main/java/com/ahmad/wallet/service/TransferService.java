@@ -28,18 +28,12 @@ public class TransferService {
     private BigDecimal dailyLimit;
 
     @Transactional
-    public TransferDto.TransferResponse transfer(String senderEmail, String idempotencyKey, TransferDto.TransferRequest request) {
-        validate(idempotencyKey, request);
-
+    public TransferDto.TransferResponse transfer(String senderEmail, TransferDto.TransferRequest request) {
+        validate(request);
         UserAccount sender = userRepository.findByEmail(senderEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Sender not found"));
         Wallet senderWallet = walletRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(sender.getId(), WalletStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException("Sender wallet not found"));
-
-        var existing = transferRepository.findByIdempotencyKeyAndSenderWalletId(idempotencyKey, senderWallet.getId());
-        if (existing.isPresent()) {
-            return replayOrConflict(existing.get(), request);
-        }
 
         UserAccount receiver = userRepository.findById(request.receiverUserId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Receiver not found"));
@@ -79,7 +73,6 @@ public class TransferService {
 
         Transfer transfer = new Transfer();
         transfer.setReference("TXN-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
-        transfer.setIdempotencyKey(idempotencyKey);
         transfer.setAmount(amount);
         transfer.setSenderWallet(from);
         transfer.setReceiverWallet(to);
@@ -108,26 +101,13 @@ public class TransferService {
         return toResponse(transfer);
     }
 
-    private void validate(String idempotencyKey, TransferDto.TransferRequest request) {
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new ApiException("Idempotency-Key header is required");
-        }
+    private void validate(TransferDto.TransferRequest request) {
         if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException("Transfer amount must be positive");
         }
         if (request.receiverUserId() == null) {
             throw new ApiException("Receiver user ID is required");
         }
-    }
-
-    private TransferDto.TransferResponse replayOrConflict(Transfer existing, TransferDto.TransferRequest request) {
-        boolean sameReceiver = existing.getReceiverWallet().getUser().getId().equals(request.receiverUserId());
-        boolean sameAmount = existing.getAmount().compareTo(request.amount()) == 0;
-        if (!sameReceiver || !sameAmount) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Idempotency key reused with a different payload. Use a new Idempotency-Key.");
-        }
-        return toResponse(existing);
     }
 
     private void resetDailyCounterIfNeeded(Wallet wallet) {

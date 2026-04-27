@@ -13,7 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "transfers",
-        uniqueConstraints = @UniqueConstraint(name = "uk_sender_idempotency", columnNames = {"sender_wallet_id", "idempotency_key"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_transfer_reference", columnNames = {"reference"})
 )
 public class Transfer {
     @Id
@@ -37,9 +37,6 @@ public class Transfer {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransferStatus status = TransferStatus.SUCCESS;
-
-    @Column(name = "idempotency_key", nullable = false)
-    private String idempotencyKey;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

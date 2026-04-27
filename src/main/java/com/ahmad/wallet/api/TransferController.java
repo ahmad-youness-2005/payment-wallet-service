@@ -3,7 +3,6 @@ package com.ahmad.wallet.api;
 import com.ahmad.wallet.api.dto.TransferDto;
 import com.ahmad.wallet.service.TransferService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -21,10 +20,9 @@ public class TransferController {
     @PostMapping
     public TransferDto.TransferResponse transfer(
             Authentication authentication,
-            @RequestHeader("Idempotency-Key") @NotBlank String idempotencyKey,
             @RequestBody @Valid TransferDto.TransferRequest request
     ) {
-        return transferService.transfer(authentication.getName(), idempotencyKey, request);
+        return transferService.transfer(authentication.getName(), request);
     }
 
     @GetMapping("/{id}")
