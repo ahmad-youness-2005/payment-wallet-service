@@ -1,0 +1,6 @@
+ALTER TABLE wallets
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    ADD COLUMN frozen_at TIMESTAMP NULL;
+
+ALTER TABLE wallets
+    DROP INDEX user_id;
